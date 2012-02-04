@@ -1,0 +1,3 @@
+[submodule "simpletest"]
+	path = simpletest
+	url = git://gitorious.org/simpletest/mainline.git
