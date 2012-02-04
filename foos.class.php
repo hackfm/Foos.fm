@@ -6,16 +6,14 @@ class FoosPlayer {
     private $strength;
     private $games = 0;
     private $lastTimestamp;
-    private $table;
 
     private $lostAgainst = array();
     private $wonAgainst = array();
 
-    public function FoosPlayer ($name, $strength, FoosTable $table) {
+    public function FoosPlayer ($name, $strength) {
         $this->name = $name;
         $this->normalizedName = FoosPlayer::normalizeName($name);
         $this->strength = $strength;
-        $this->table = $table;
     }
 
     public function getName() {
@@ -63,7 +61,9 @@ class FoosPlayer {
         return $this->lastTimestamp;
     }
 
-    public function loseAgainst(FoosPlayer $opponent) {
+    //private function increaseList() 
+
+    public function loseAgainst(FoosPlayer $opponent, $strengthDelta, $timestamp) {
         $OppNormalizedName = $opponent->getNormalizedName();
         if (isset($this->lostAgainst[$OppNormalizedName])) {
             $this->lostAgainst[$OppNormalizedName]++;
@@ -72,9 +72,12 @@ class FoosPlayer {
         {
             $this->lostAgainst[$OppNormalizedName] = 1;
         }
+
+        $this->addStrength($strengthDelta);
+        $this->incGames($timestamp);
     } 
 
-    public function winAgainst(FoosPlayer $opponent) {
+    public function winAgainst(FoosPlayer $opponent, $strengthDelta, $timestamp) {
         $OppNormalizedName = $opponent->getNormalizedName();
         if (isset($this->wonAgainst[$OppNormalizedName])) {
             $this->wonAgainst[$OppNormalizedName]++;
@@ -83,6 +86,14 @@ class FoosPlayer {
         {
             $this->wonAgainst[$OppNormalizedName] = 1;
         }
+
+        $this->addStrength($strengthDelta);
+        $this->incGames($timestamp);
+    } 
+
+    public function drawAgainst(FoosPlayer $opponent, $strengthDelta, $timestamp) {
+        $this->addStrength($strengthDelta);
+        $this->incGames($timestamp);
     } 
 
     public function getLostAgainstList() {
@@ -104,10 +115,24 @@ class FoosPlayer {
         return $values[0];
     }
 
-    private function 
+    public function getNormalizedStrength() {
+        return pow(10, $this->getStrength() / FoosTable::RELATIVE_STRENGTH_NORMALISATION);
+    }
 
-    public function getChancesToWinAgains(FoosPlayer $player) {
-      
+    public function getChancesToWinAgainst(FoosPlayer $opponent) {
+        $q1 = $this->getNormalizedStrength();
+        $q2 = $opponent->getNormalizedStrength();
+        return $q1 / ($q1 + $q2);
+    }
+
+    /**
+     * Calculates strength delta for defined outcome. Does not change strength.
+     * @param $opponent
+     * @param $outcome float 0 = lost, 0.5 = draw, 1 = win
+     * @return Strength delta
+     */
+    public function getStrengthDeltaAfterGame(FoosPlayer $opponent, $outcome) {
+        return FoosTable::K * ($outcome - $this->getChancesToWinAgainst($opponent));
     }
 }
 
@@ -120,9 +145,8 @@ class FoosMatch {
     private $player2;
     private $score2;
     private $timestamp;
-    private $table;
 
-    public function FoosMatch(FoosPlayer $player1, $score1, FoosPlayer $player2, $score2, FoosTable $table) {
+    public function FoosMatch(FoosPlayer $player1, $score1, FoosPlayer $player2, $score2) {
         if ($score1>=$score2) {
             $this->player1 = $player1;  
             $this->player2 = $player2;  
@@ -137,7 +161,6 @@ class FoosMatch {
     	$this->score2   = min($score1, $score2);
 
         $this->timestamp = time();
-        $this->table = $table;
     }
 
     public function getTimestamp() {
@@ -168,26 +191,21 @@ class FoosMatch {
         return $this->score1 == $this->score2;
     }
 
-    public function calculateScore($additionalInfo = true) {
-        $q1 = pow(10, $this->player1->getStrength() / FoosTable::RELATIVE_STRENGTH_NORMALISATION);
-        $q2 = pow(10, $this->player2->getStrength() / FoosTable::RELATIVE_STRENGTH_NORMALISATION);
+    public function calculateScore() {
+        if ($this->isDraw()) {
+            $deltaStrength1 = $this->player1->getStrengthDeltaAfterGame($this->player2, 0.5);
+            $deltaStrength2 = $this->player2->getStrengthDeltaAfterGame($this->player1, 0.5);
 
-        $expected1 = $q1 / ($q1 + $q2);
-        $expected2 = $q2 / ($q1 + $q2);
+            $this->player1->drawAgainst($this->player2, $deltaStrength1, $this->timestamp);
+            $this->player2->drawAgainst($this->player1, $deltaStrength2, $this->timestamp);
+        }
+        else
+        {
+            $deltaStrength1 = $this->player1->getStrengthDeltaAfterGame($this->player2, 1);
+            $deltaStrength2 = $this->player2->getStrengthDeltaAfterGame($this->player1, 0);
 
-        $this->player1->addStrength(
-            FoosTable::K * (($this->isDraw()?0.5:1) - $expected1)
-        );
-        $this->player2->addStrength(
-            FoosTable::K * (($this->isDraw()?0.5:0) - $expected2)
-        );
-
-        $this->player1->incGames($this->timestamp);
-        $this->player2->incGames($this->timestamp);
-
-        if (!$this->isDraw() && $additionalInfo) {
-            $this->player1->winAgainst($this->player2);
-            $this->player2->loseAgainst($this->player1);
+            $this->player1->winAgainst ($this->player2, $deltaStrength1, $this->timestamp);
+            $this->player2->loseAgainst($this->player1, $deltaStrength2, $this->timestamp);
         }
     }
 

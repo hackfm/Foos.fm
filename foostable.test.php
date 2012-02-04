@@ -9,7 +9,8 @@ class TestFoosTable extends UnitTestCase {
         $table->loadCurrentStatus();
         $table->calculateScore();
         $table->sortPlayers();
-        $this->assertEqual($table->getPlayerAtPosition(1), $table->getPlayerByName('jing'));
+        //print_r($table->getPlayers());
+        $this->assertEqual($table->getPlayerAtPosition(1), $table->getPlayerByName('coffey'));
         $this->assertEqual($table->getPositionOfPlayer('samuel'), 3);
         $this->assertEqual($table->getPlayerByName('marek')->getGames(), 11);
     }

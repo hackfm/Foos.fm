@@ -56,8 +56,8 @@ class TestFoosMatch extends UnitTestCase {
         $player2 = new FoosPlayer('player2', 1000);
         $match = new FoosMatch($player1, 2, $player2, 1);
         $match->calculateScore();
-        $this->assertEqual($player1->getStrength(), 1016);
-        $this->assertEqual($player2->getStrength(), 984);
+        $this->assertEqual($player1->getStrength(), 1100);
+        $this->assertEqual($player2->getStrength(), 900);
     }
 
     function testCalculateScore2() {
@@ -65,8 +65,8 @@ class TestFoosMatch extends UnitTestCase {
         $player2 = new FoosPlayer('player2', 1000);
         $match = new FoosMatch($player1, 1, $player2, 2);
         $match->calculateScore();
-        $this->assertEqual($player2->getStrength(), 1016);
-        $this->assertEqual($player1->getStrength(), 984);
+        $this->assertEqual($player2->getStrength(), 1100);
+        $this->assertEqual($player1->getStrength(), 900);
     }
 
 
