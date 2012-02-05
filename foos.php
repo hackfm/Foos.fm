@@ -20,12 +20,13 @@
         die();
     }
 
-
+    // Current data
     $table = new FoosTable($workingPath);
     $table->setLogMaxSize(30);
     $table->loadCurrentStatus();
     $table->calculateScore();
 
+    // Table with data 48h old (to display changes)
     $tableOld = new FoosTable($workingPath);
     $tableOld->loadStatusForTime(time() - 48 * 60 * 60);
     $tableOld->calculateScore();
@@ -36,125 +37,16 @@
 <!doctype html>
 <html lang="en">
 <head>
-  <meta charset="utf-8">
-  <title>Foos.fm</title>
-  <meta name="description" content="Foos.fm">
-  <link rel="stylesheet" href="style.css">
+    <meta charset="utf-8">
+    <title>Foos.fm</title>
+    <meta name="description" content="Foos.fm">
+    <link rel="stylesheet" href="style.css">
+      
 </head>
 <body>
 
-    <table> 
-        <tr>
-            <th>48h</th>
-            <th>Position</th>
-            <th>Name</th>
-            <th>Strength</th>
-            <th>Games</th>
-            <th>Nemesis</th>
-        </tr>
-<?php
-
-    $i = 1;
-
-    /** 
-     * Columns:
-     * - Change in last 48h
-     * - Position
-     * - Name
-     * - Strength
-     * - Number of Games played
-     * - Nemesis
-     */
-
-    foreach ($table->getPlayers() as $player) {
-
-    
-        echo "<tr>";
-
-        // Change in the last 48h
-        echo "<td>";
-        $changePos = $tableOld->getPositionOfPlayer($player->getName());
-        if (!$changePos) {
-            echo "NEW!";
-        } else {
-            $changePos = $changePos - $i;
-            if ($changePos > 0) {
-                echo "+$changePos";
-            }
-            elseif ($changePos < 0) {
-                echo "$changePos";
-            } else {
-                echo "<=>";
-            }
-        }
-        echo "</td>";
-        
-        // Position   
-        echo "<td>$i.</td>";  
-        
-        // Name
-        echo "<td>".$player->getName()."</td>";
-
-        // Strength
-        echo "<td>".$player->getRoundedStrength()."</td>";
-
-        // Number of Games played
-        echo "<td>".$player->getGames()."</td>";
-
-        // Nemesis
-        echo "<td>";
-        $nemesis = $player->getNemesis();
-        if ($nemesis) {
-            echo $nemesis['player']->getName()." (+".$nemesis['count']." wins)";
-        } else {
-            echo "";
-        }
-        echo "</td>";
-
-        // Increase counter
-        $i++;
-       
-   }
-
-
-?>
-    </table>
-
-    <script type="text/javascript" src="https://www.google.com/jsapi"></script>
-    <script type="text/javascript">
-      google.load("visualization", "1", {packages:["corechart"]});
-      google.setOnLoadCallback(drawChart);
-      function drawChart() {
-        var data = new google.visualization.DataTable();
-        data.addColumn('string', 'Game #');
-<?php
-    foreach ($table->getPlayers() as $player) {
-        echo "data.addColumn('number', '".$player->getName()."');";
-    }
-
-    echo "data.addRows([";
-    $i = 1;
-    foreach ($table->getLog() as $logEntry) {
-        echo "['".$i++."'";
-            foreach ($table->getPlayers() as $player) {
-                echo ",".round($logEntry[$player->getNormalizedName()]);
-            }
-        echo "],";
-    }
-    echo "]);";
-?>
-
-        var options = {
-          width: "100%", height: 400,
-          theme: 'maximized'
-        };
-
-        var chart = new google.visualization.LineChart(document.getElementById('chart_div'));
-        chart.draw(data, options);
-      }
-    </script>
-
-    <div id="chart_div"></div>
+    <div id="player_chart"></div>
+    <div id="log_chart"></div>
 
     <h1>History</h1>
 
@@ -190,6 +82,124 @@
     <!--<script src="js/scripts.js"></script>-->
 
     </table>
+
+
+    <script type="text/javascript" src="https://www.google.com/jsapi"></script>
+    <script type="text/javascript">
+        google.load("visualization", "1", {packages:['corechart','table']});
+        google.setOnLoadCallback(drawChart);
+
+        function drawChart() {
+            // Player table
+            var playerTable = new google.visualization.DataTable();
+            playerTable.addColumn('number', '48h');
+            playerTable.addColumn('number', 'Position');
+            playerTable.addColumn('string', 'Name');
+            playerTable.addColumn('number', 'Strength');
+            playerTable.addColumn('number', 'Games');
+            playerTable.addColumn('string', 'Nemesis');
+            <?php
+                $minStrength = null;
+                $i = 0;
+                foreach ($table->getPlayers() as $player) {
+                    echo "playerTable.addRows(1);\n";
+
+                    $changePos = $tableOld->getPositionOfPlayer($player->getName());
+                    if (!$changePos) {
+                        echo "playerTable.setCell($i, 0, 0);\n";
+                    } else {
+                        $changePos = $changePos - $i - 1;
+                        echo "playerTable.setCell($i, 0, ".$changePos.");\n";
+                    }
+                    echo "playerTable.setCell($i, 1, ".($i + 1).");\n";
+                    echo "playerTable.setCell($i, 2, '".$player->getName()."');\n";
+                    echo "playerTable.setCell($i, 3, ".$player->getRoundedStrength().");\n";
+                    echo "playerTable.setCell($i, 4, ".$player->getGames().");\n";
+                    $nemesis = $player->getNemesis();
+                    if ($nemesis) {
+                        echo "playerTable.setCell($i, 5, '".$nemesis['player']->getName()." (+".$nemesis['count']." wins)');\n";
+                    } else {
+                        echo "playerTable.setCell($i, 5, '');\n";
+                    }
+
+                    if ($minStrength === null) {
+                        $minStrength = $player->getRoundedStrength();
+                    }
+                    else
+                    {
+                        $minStrength = min($minStrength, $player->getRoundedStrength());
+                    }
+                    
+                    
+                    $i++;
+                }
+            ?>
+
+            // Arrow formater for first column
+            var formatter = new google.visualization.ArrowFormat();
+            formatter.format(playerTable, 0); 
+
+            // Bar formater for third column
+            var formatter = new google.visualization.BarFormat({
+                width: 400,
+                base: 1000,
+                min: <?php echo $minStrength; ?>
+            });
+            formatter.format(playerTable, 3);
+
+            var playerOptions = {
+                allowHtml: true,
+                showRowNumber: false
+            };
+
+            var playerChart = new google.visualization.Table(document.getElementById('player_chart'));
+            playerChart.draw(playerTable, playerOptions);
+
+            // Log data
+            var logTable = new google.visualization.DataTable();
+            logTable.addColumn('string', 'Game #');
+
+            <?php
+                foreach ($table->getPlayers() as $player) {
+                    echo "logTable.addColumn('number', '".$player->getName()."');\n";
+                }
+
+                echo "logTable.addRows([";
+                $i = 1;
+                $matches = $table->getMatches();
+                    
+                foreach ($table->getLog() as $logEntry) {
+                    $match = $matches[count($matches) - $i];
+                    echo "['".
+                            $match->getPlayer1()->getName().
+                            " vs. ".
+                            $match->getPlayer2()->getName().
+                            " (".
+                            date('d F Y g:i A', $match->getTimestamp()).
+                            ")".
+                          "'";
+                        foreach ($table->getPlayers() as $player) {
+                            echo ",".round($logEntry[$player->getNormalizedName()]);
+                        }
+                    echo "],\n";
+                    $i++;
+                }
+                echo "]);";
+            ?>
+
+            var logOptions = {
+                width: "100%", height: 400,
+                theme: 'maximized',
+                hAxis: {
+                    textPosition: 'none',
+                }
+            };
+
+            var logChart = new google.visualization.LineChart(document.getElementById('log_chart'));
+            logChart.draw(logTable, logOptions);
+        }
+
+    </script>  
 </body>
 </html>
 
