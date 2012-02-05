@@ -25,7 +25,6 @@ class TestFoosTable extends UnitTestCase {
         $file = file_get_contents(dirname(__FILE__) . '/testData/games.json');
         $file2 = file_get_contents(dirname(__FILE__) . '/testData/games2.json');
         $this->assertEqual($file, $file2);
-        //print_r($table->getPlayers());
     }
 
     function testLostAgainst() {
@@ -34,9 +33,13 @@ class TestFoosTable extends UnitTestCase {
         $table->calculateScore();
         $table->sortPlayers();
         $lostAgainst = $table->getPlayerByName('marek')->getLostAgainstList();
-        $this->assertEqual($lostAgainst['COFFEY'], 2);
+        $this->assertEqual($lostAgainst['COFFEY']['count'], 2);
+        $this->assertEqual($lostAgainst['COFFEY']['player'], $table->getPlayerByName('coffey'));
         $this->assertEqual(count($lostAgainst), 6);
-        $this->assertEqual($table->getPlayerByName('marek')->getNemesis(), "COFFEY");
+        
+        $nemesis = $table->getPlayerByName('michaelhoran')->getNemesis();
+        $this->assertEqual($nemesis['count'], 2);
+        $this->assertEqual($nemesis['player'], $table->getPlayerByName('jing'));
     }
 
     function testLastTimestamp() {
@@ -45,6 +48,18 @@ class TestFoosTable extends UnitTestCase {
         $table->calculateScore();
         $table->sortPlayers();
         $this->assertEqual($table->getPlayerByName('marek')->getLastTimestamp(), 1328033408);
+    }
+
+    function testDeleteMatch() {
+        $table = new FoosTable(dirname(__FILE__) . '/testData/');
+        $table->loadCurrentStatus();
+        $matches = $table->getMatches();
+        $match = $matches[3];
+        $this->assertEqual($table->getNumberOfMatches(), 37);
+        $this->assertTrue($table->deleteMatch($match->getTimestamp()));
+        $this->assertEqual($table->getNumberOfMatches(), 36);
+        $this->assertFalse($table->deleteMatch($match->getTimestamp()));
+        $this->assertEqual($table->getNumberOfMatches(), 36);
     }
     
 }

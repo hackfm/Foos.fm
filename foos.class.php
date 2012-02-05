@@ -9,6 +9,7 @@ class FoosPlayer {
 
     private $lostAgainst = array();
     private $wonAgainst = array();
+    private $nemesisList = array();
 
     public function FoosPlayer ($name, $strength) {
         $this->name = $name;
@@ -61,34 +62,31 @@ class FoosPlayer {
         return $this->lastTimestamp;
     }
 
-    //private function increaseList() 
-
-    public function loseAgainst(FoosPlayer $opponent, $strengthDelta, $timestamp) {
-        $OppNormalizedName = $opponent->getNormalizedName();
-        if (isset($this->lostAgainst[$OppNormalizedName])) {
-            $this->lostAgainst[$OppNormalizedName]++;
+    private function addOpponentToList(FoosPlayer $opponent, &$list, $inc = 1) {
+        $oppNormalizedName = $opponent->getNormalizedName();
+        if (isset($list[$oppNormalizedName])) {
+            $list[$oppNormalizedName]['count'] += $inc;
         }
         else
         {
-            $this->lostAgainst[$OppNormalizedName] = 1;
+            $list[$oppNormalizedName]['count']  = $inc;
+            $list[$oppNormalizedName]['player'] = $opponent;
         }
 
+    }
+
+    public function loseAgainst(FoosPlayer $opponent, $strengthDelta, $timestamp) {
+        $this->addOpponentToList($opponent, $this->lostAgainst);
+        $this->addOpponentToList($opponent, $this->nemesisList);
         $this->addStrength($strengthDelta);
         $this->incGames($timestamp);
     } 
 
     public function winAgainst(FoosPlayer $opponent, $strengthDelta, $timestamp) {
-        $OppNormalizedName = $opponent->getNormalizedName();
-        if (isset($this->wonAgainst[$OppNormalizedName])) {
-            $this->wonAgainst[$OppNormalizedName]++;
-        }
-        else
-        {
-            $this->wonAgainst[$OppNormalizedName] = 1;
-        }
-
+        $this->addOpponentToList($opponent, $this->wonAgainst);
+        $this->addOpponentToList($opponent, $this->nemesisList, -1);
         $this->addStrength($strengthDelta);
-        $this->incGames($timestamp);
+        $this->incGames($timestamp);     
     } 
 
     public function drawAgainst(FoosPlayer $opponent, $strengthDelta, $timestamp) {
@@ -97,22 +95,44 @@ class FoosPlayer {
     } 
 
     public function getLostAgainstList() {
-        arsort($this->lostAgainst);
+        uasort($this->lostAgainst, array("FoosPlayer", "sortPlayerInListWithCounter"));
         return $this->lostAgainst;
     }
 
     public function getWonAgainstList() {
-        arsort($this->wonAgainst);
+        uasort($this->wonAgainst, array("FoosPlayer", "sortPlayerInListWithCounter"));
         return $this->wonAgainst;
     }
 
+    public function getNemesisList() {
+        uasort($this->nemesisList, array("FoosPlayer", "sortPlayerInListWithCounter"));
+        return $this->nemesisList;
+    }
+
+    private static function sortPlayerInListWithCounter($a, $b) {
+        if ($a['count'] == $b['count']) {
+            return 0;
+        }
+        return ($a['count'] < $b['count']) ? 1 : -1;
+    }
+
+    /**
+     * Determines a players nemesis
+     * @return Array('count' => delta won games against lost, 'player' => Player) or false if no nemesis found
+     */
     public function getNemesis() {
-        $list = $this->getLostAgainstList();
-        $values = array_keys($list);
+        $list = $this->getNemesisList();
+
+        $values = array_values($list);  
+           
         if (count($values) == 0) {
             return false;
         }
-        return $values[0];
+        if ($values[0]['count'] < 1) {
+            return false;
+        }
+
+        return $values[0];   
     }
 
     public function getNormalizedStrength() {
@@ -234,6 +254,7 @@ class FoosTable {
     private $players = array();
     private $matches = array();
 
+
     public function FoosTable($gameFolder = null) {
         if ($gameFolder != null) {
             $this->gameFolder = $gameFolder;
@@ -283,6 +304,10 @@ class FoosTable {
         }   
     }
 
+    /** 
+     * Save table to file
+     * @param $gamesFile [optional, defaults to GAMES_FILE] File name in $gameFolder
+     */
     public function saveToFile($gamesFile = null) {
         if(!$gamesFile) {
             $gamesFile = self::GAMES_FILE; 
@@ -298,10 +323,63 @@ class FoosTable {
         file_put_contents($fileName, json_encode($json));
     }
 
+    /**
+     * Add match to this table and sorts it if necessary.
+     */
     public function addMatch(FoosMatch $match) {
-        $this->matches[] = $match;
+        if (count($this->matches) == 0) {
+            $this->matches[] = $match;
+        }
+        else
+        {
+            $lastMatch = $this->matches[count($this->matches)-1];
+            $this->matches[] = $match;
+            if($lastMatch->getTimestamp() > $match->getTimestamp()) {
+                $this->sortMatches();
+            }
+        }
     }
 
+    /**
+     * Sorts matches. Is called by addMatch().
+     * @see FoosTable.addMatch()
+     */
+    private function sortMatches() {
+        uasort($this->matches, array("FoosTable", "sortMatchesByTimestamp"));
+    }
+
+    /** 
+     * Sort function for sorting arrays of Matches by Timestamp
+     */
+    private static function sortMatchesByTimestamp(FoosMatch $a, FoosMatch $b) {
+        if ($a->getTimestamp() == $b->getTimestamp()) {
+            return 0;
+        }
+        return ($a->getTimestamp() < $b->getTimestamp()) ? 1 : -1;
+    }
+
+    /**
+     * Delete a match by timestamp
+     * @param timestamp Unix timestamp 
+     * @return true if successful, otherwise false
+     */
+    public function deleteMatch($timestamp) {
+        for($i=0; $i<count($this->matches); $i++) {
+            if ($this->matches[$i]->getTimestamp() == $timestamp) {
+                unset($this->matches[$i]);
+                $this->matches = array_values($this->matches);
+                return true;
+            }
+        }
+        return false;
+    }
+
+    /** 
+     * Return player by name, create a new object if necessary.
+     * This function is case-insensitiv.
+     * @param $name Player name, case insensitiv
+     * @return FoosPlayer object
+     */
     public function getPlayerByName($name) {
         // Do we know this player?
         $normalizedName = FoosPlayer::normalizeName($name);
@@ -322,7 +400,14 @@ class FoosTable {
     }
 
     public function sortPlayers() {
-        uasort($this->players, 'sortPlayer');
+        uasort($this->players, array("FoosTable", "sortPlayerByStrength"));
+    }
+
+    private static function sortPlayerByStrength(FoosPlayer $a, FoosPlayer $b) {
+        if ($a->getStrength() == $b->getStrength()) {
+            return 0;
+        }
+        return ($a->getStrength() < $b->getStrength()) ? 1 : -1;
     }
 
     public function getPlayers() {
@@ -343,6 +428,10 @@ class FoosTable {
 
     public function getMatches() {
         return $this->matches;
+    }
+
+    public function getNumberOfMatches() {
+        return count($this->matches);
     }
 
     /**
@@ -476,9 +565,4 @@ class FoosTable {
 }
 
 
-function sortPlayer(FoosPlayer $a, FoosPlayer $b) {
-    if ($a->getStrength() == $b->getStrength()) {
-        return 0;
-    }
-    return ($a->getStrength() < $b->getStrength()) ? 1 : -1;
-}
+
