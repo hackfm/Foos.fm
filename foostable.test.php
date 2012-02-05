@@ -8,7 +8,6 @@ class TestFoosTable extends UnitTestCase {
         $table = new FoosTable(dirname(__FILE__) . '/testData/');
         $table->loadCurrentStatus();
         $table->calculateScore();
-        $table->sortPlayers();
         //print_r($table->getPlayers());
         $this->assertEqual($table->getPlayerAtPosition(1), $table->getPlayerByName('coffey'));
         $this->assertEqual($table->getPositionOfPlayer('samuel'), 3);
@@ -19,7 +18,6 @@ class TestFoosTable extends UnitTestCase {
         $table = new FoosTable(dirname(__FILE__) . '/testData/');
         $table->loadCurrentStatus();
         $table->calculateScore();
-        $table->sortPlayers();
         $table->saveToFile('games2.json');
 
         $file = file_get_contents(dirname(__FILE__) . '/testData/games.json');
@@ -31,7 +29,6 @@ class TestFoosTable extends UnitTestCase {
         $table = new FoosTable(dirname(__FILE__) . '/testData/');
         $table->loadCurrentStatus();
         $table->calculateScore();
-        $table->sortPlayers();
         $lostAgainst = $table->getPlayerByName('marek')->getLostAgainstList();
         $this->assertEqual($lostAgainst['COFFEY']['count'], 2);
         $this->assertEqual($lostAgainst['COFFEY']['player'], $table->getPlayerByName('coffey'));
@@ -46,7 +43,6 @@ class TestFoosTable extends UnitTestCase {
         $table = new FoosTable(dirname(__FILE__) . '/testData/');
         $table->loadCurrentStatus();
         $table->calculateScore();
-        $table->sortPlayers();
         $this->assertEqual($table->getPlayerByName('marek')->getLastTimestamp(), 1328033408);
     }
 
@@ -60,6 +56,17 @@ class TestFoosTable extends UnitTestCase {
         $this->assertEqual($table->getNumberOfMatches(), 36);
         $this->assertFalse($table->deleteMatch($match->getTimestamp()));
         $this->assertEqual($table->getNumberOfMatches(), 36);
+    }
+
+    function testLog() {
+        $table = new FoosTable(dirname(__FILE__) . '/testData/');
+        $table->loadCurrentStatus();
+        $table->setLogMaxSize(15);
+        $table->calculateScore();
+        $log = $table->getLog();
+
+        $this->assertEqual(count($log), 15);
+        $this->assertEqual(count($log[0]), 11);
     }
     
 }

@@ -246,14 +246,15 @@ class FoosTable {
     const K = 200;   
     const RELATIVE_STRENGTH_NORMALISATION = 500;   
     const DEFAULT_STRENGTH = 1000;  
+    const GAMES_FILE    = 'games.json';
 
     private $gameFolder = '/userhome/marek/foos/'; // Has to end with a trailing slash!
-    //const TABLE_FILE    = 'table.json';
-    const GAMES_FILE    = 'games.json';
     
     private $players = array();
     private $matches = array();
 
+    private $logMaxSize = 0;
+    private $log = array();
 
     public function FoosTable($gameFolder = null) {
         if ($gameFolder != null) {
@@ -268,6 +269,18 @@ class FoosTable {
     public function loadStatusForTime($timestamp) {
         $this->loadGamesFromFile(self::GAMES_FILE, $timestamp);
     }  
+
+    public function setLogMaxSize($logMaxSize) {
+        $this->logMaxSize = $logMaxSize;
+    }
+
+    public function getLogMaxSize() {
+        return $this->logMaxSize;
+    }
+
+    public function getLog() {
+        return $this->log;
+    }
 
     public function loadGamesFromFile($gamesFile, $timestamp = null) {
         if(!$timestamp) {
@@ -393,10 +406,22 @@ class FoosTable {
         return $player;
     }
 
+    /**
+     * Should never be called more than once on the same function
+     */
     public function calculateScore() {
-        foreach($this->matches as $match) {
+        foreach($this->matches as $i=>$match) {
             $match->calculateScore();
+            if ($this->logMaxSize + $i >= $this->getNumberOfMatches()) {
+                $logEntry = array();
+                foreach($this->players as $normalizedName=>$player) {
+                    $logEntry[$normalizedName] = $player->getStrength();
+                }
+                $this->log[] = $logEntry;
+            }
         }
+
+        $this->sortPlayers();
     }
 
     public function sortPlayers() {
@@ -458,110 +483,7 @@ class FoosTable {
     public function timestampIsToday($timestamp) {
         return getDayTextForTimestamp(time()) == getDayTextForTimestamp(time());
     }
-/*
 
-  
-          
-  
-          // Printing table?
-          if ( ! $toks) {
-              $i = 1;
-  
-              foreach ($table as $player => $strength) {
-                  echo "$i: $player (" . intval($strength) . ")\n";
-  
-                  ++$i;
-              }
-  
-              break;
-          }
-  
-          // Scoring?
-          if (count($toks) != 4) {
-              echo "Example usage: foos Samuel 11 Coffey 15";
-  
-              break;
-          }
-  
-          list($player1, $score1, $player2, $score2) = $toks;
-  
-          if ( ! is_numeric($score1) || ! is_numeric($score2)) {
-              echo "Example usage: foos Samuel 11 Coffey 15";
-  
-              break;
-          }
-  
-         $strength1 = isset($table[$player1])
-              ? $table[$player1]
-              : DEFAULT_STRENGTH;
-  
-          $strength2 = isset($table[$player2])
-              ? $table[$player2]
-              : DEFAULT_STRENGTH;
-  
-          $q1 = pow(10, $strength1 / RELATIVE_STRENGTH_NORMALISATION);
-          $q2 = pow(10, $strength2 / RELATIVE_STRENGTH_NORMALISATION);
-  
-          $expected1 = $q1 / ($q1 + $q2);
-          $expected2 = $q2 / ($q1 + $q2);
-  
-          $internalScore1 = 0;
-          $internalScore2 = 0;
-  
-          if ($score1 > $score2) {
-              $internalScore1 = 1;
-          } elseif ($score1 < $score2) {
-              $internalScore2 = 1;
-          } else {
-  
-              // TODO Should players be able to draw;   
-          $internalScore1 = $internalScore2 = 0.5;
-          }
-  
-          $strength1 += K * ($internalScore1 - $expected1);
-          $strength2 += K * ($internalScore2 - $expected2);
-  
-          $table[$player1] = $strength1;
-          $table[$player2] = $strength2;
-  
-          asort($table, SORT_NUMERIC);
-          $table = array_reverse($table, true);
-  
-          file_put_contents(TABLE_FILE, json_encode($table));
-  
-          // TODO Expose this data!
-         $games[] = array(
-              'timestamp' => time(),
-              'result'    => array(
-                  $player1 => $score1,
-                  $player2 => $score2,
-              ),
-          );
-  
-          file_put_contents(GAMES_FILE, json_encode($games));
-  
-          // FOOS-1 Give better feedback about the game
-          $result = 'Game #' . count($games) . ': ';
-  
-          $prettyPlayer1 = "{$player1} (" . intval($strength1) . ')';
-          $prettyPlayer2 = "{$player2} (" . intval($strength2) . ')';
-  
-          if ($score1 > $score2) {
-              $result .= "{$prettyPlayer1} beat {$prettyPlayer2}!";
-          } elseif ($score1 < $score2) {
-              $result .= "{$prettyPlayer2} beat {$prettyPlayer1}!";
-          } else {
-              $result .= "{$prettyPlayer1} drew with {$prettyPlayer2}...";
-          }
-  
-          echo $result;
-  
-          break;
-  
-      default:
-          // print "Don't know how to '$input'\n";        
-          break;
-*/
 }
 
 
