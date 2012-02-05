@@ -50,6 +50,10 @@ class FoosPlayer {
         return $this->strength;
     }
 
+    public function getRoundedStrength() {
+        return round($this->strength);
+    }
+
     public function setStrength($strength) {
         $this->strength = $strength;
     }
