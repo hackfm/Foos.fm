@@ -142,7 +142,7 @@
             // Bar formater for third column
             var formatter = new google.visualization.BarFormat({
                 width: 400,
-                base: 1000,
+                base: <?php echo FoosTable::DEFAULT_STRENGTH; ?>,
                 min: <?php echo $minStrength; ?>
             });
             formatter.format(playerTable, 3);
@@ -169,7 +169,7 @@
                 $matches = $table->getMatches();
                     
                 foreach ($table->getLog() as $logEntry) {
-                    $match = $matches[count($matches) - $i];
+                    $match = $matches[count($matches) - 31 + $i];
                     echo "['".
                             $match->getPlayer1()->getName().
                             " vs. ".
