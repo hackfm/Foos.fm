@@ -1,19 +1,37 @@
 <?php
-   //** Model **//
-   require_once('foos.class.php');
+    //** Model **//
+    require_once('foos.class.php');
 
-   //** Controller **//
-   $table = new FoosTable('/home/marek/foosdata/');
-   $table->setLogMaxSize(30);
-   $table->loadCurrentStatus();
-   $table->calculateScore();
+    //** Constants **//
+    $workingPath = '/home/marek/foosdata/';
 
-   $tableOld = new FoosTable('/home/marek/foosdata/');
-   $tableOld->loadStatusForTime(time() - 48 * 60 * 60);
-   $tableOld->calculateScore();
+    //** Controller **//
+
+    // Delete
+    if (isset($_GET['delete'])) {
+        $timestamp = $_GET['delete'] * 1;
+        $tmpTable = new FoosTable($workingPath);
+        $tmpTable->loadCurrentStatus();
+        $tmpTable->deleteMatch($timestamp);
+        $tmpTable->saveToFile();
+
+        // Remove ?delete=xxx part from URL
+        header('Location: foos.php');
+        die();
+    }
 
 
-   //** View **//
+    $table = new FoosTable($workingPath);
+    $table->setLogMaxSize(30);
+    $table->loadCurrentStatus();
+    $table->calculateScore();
+
+    $tableOld = new FoosTable($workingPath);
+    $tableOld->loadStatusForTime(time() - 48 * 60 * 60);
+    $tableOld->calculateScore();
+
+
+    //** View **//
 ?>
 <!doctype html>
 <html lang="en">
