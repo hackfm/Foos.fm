@@ -4,6 +4,7 @@
 
    //** Controller **//
    $table = new FoosTable('/home/marek/foosdata/');
+   $table->setLogMaxSize(30);
    $table->loadCurrentStatus();
    $table->calculateScore();
 
@@ -101,21 +102,76 @@
 ?>
     </table>
 
+    <script type="text/javascript" src="https://www.google.com/jsapi"></script>
+    <script type="text/javascript">
+      google.load("visualization", "1", {packages:["corechart"]});
+      google.setOnLoadCallback(drawChart);
+      function drawChart() {
+        var data = new google.visualization.DataTable();
+        data.addColumn('string', 'Game #');
+<?php
+    foreach ($table->getPlayers() as $player) {
+        echo "data.addColumn('number', '".$player->getName()."');";
+    }
+
+    echo "data.addRows([";
+    $i = 1;
+    foreach ($table->getLog() as $logEntry) {
+        echo "['".$i++."'";
+            foreach ($table->getPlayers() as $player) {
+                echo ",".round($logEntry[$player->getNormalizedName()]);
+            }
+        echo "],";
+    }
+    echo "]);";
+?>
+
+        var options = {
+          width: "100%", height: 400,
+          theme: 'maximized'
+        };
+
+        var chart = new google.visualization.LineChart(document.getElementById('chart_div'));
+        chart.draw(data, options);
+      }
+    </script>
+
+    <div id="chart_div"></div>
+
+    <h1>History</h1>
+
+    <table>
+        <tr>
+            <th>#</th>
+            <th>Winner</th>
+            <th></th>
+            <th>Looser</th>
+            <th></th>
+            <th>Time</th>
+            <th>Action</th>
+        </tr>    
+
+
 <!-- LOG -->
 <?php
-   $i = 1;
-   
-   echo "</ol><h2>Log</h2><ol>";
+    $i = 1;
+    foreach (array_reverse($table->getMatches()) as $match) {
+        echo "<tr>";
+        echo "<td>".$i++."</td>";
+        echo "<td>".$match->getPlayer1()->getName()."</td>";
+        echo "<td>".$match->getScore1(). "</td>";
+        echo "<td>".$match->getPlayer2()->getName()."</td>";
+        echo "<td>".$match->getScore2()."</td>";
+        echo "<td>".date('d F Y g:i A', $match->getTimestamp())."</td>";
+        echo "<td><a href=\"confirm.php?delete=".$match->getTimestamp()."\">Delete</a></td>";
 
-   foreach (array_reverse($table->getMatches()) as $match) {
-       echo "<li>";
-       echo $match->getPlayer1()->getName()." (".$match->getScore1(). ") ";
-       echo $match->getPlayer2()->getName()." (".$match->getScore2().") ";
-       echo " <small>".date('d F Y g:i A', $match->getTimestamp())."</small></li>\n";
-   }
+        echo "</tr>";
+    }
 ?>
     
     <!--<script src="js/scripts.js"></script>-->
+
+    </table>
 </body>
 </html>
 

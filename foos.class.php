@@ -21,10 +21,6 @@ class FoosPlayer {
         return $this->name;
     }
 
-    public function getUppercaseName() {
-        return $this->uppercaseName;
-    }
-
     public static function normalizeName($name) {
         return strtoupper($name);
     }
