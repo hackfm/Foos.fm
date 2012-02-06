@@ -309,6 +309,14 @@ class FoosTable {
                 }
             }
 
+            // Daily backup
+            $todaysBackupName = 'backup-'.$this->getDayTextForTimestamp(time()).".json";
+            if (!file_exists($this->gameFolder.$todaysBackupName)) {
+                // Create backup
+                $this->saveToFile($todaysBackupName); 
+            }
+
+
             return true;
         }
         else 
