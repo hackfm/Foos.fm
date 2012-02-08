@@ -2,7 +2,6 @@
 
 class FoosPlayer {
     private $name;
-    private $normalizedName;
     private $strength;
     private $games = 0;
     private $lastTimestamp;
@@ -13,8 +12,13 @@ class FoosPlayer {
 
     public function FoosPlayer ($name, $strength) {
         $this->name = $name;
-        $this->normalizedName = FoosPlayer::normalizeName($name);
         $this->strength = $strength;
+    }
+
+    public function asScoreArray($score) {
+        return array(
+            $this->getName() => $score
+        );
     }
 
     public function getName() {
@@ -26,7 +30,7 @@ class FoosPlayer {
     }
 
     public function getNormalizedName() {
-        return $this->normalizedName;
+        return FoosPlayer::normalizeName($this->getName());
     }
 
     public function getGames() {
@@ -55,13 +59,25 @@ class FoosPlayer {
     }
     
     public function matchesName($name) {
-    	return $this->normalizedName == FoosPlayer::normalizeName($name);
+    	return $this->getNormalizedName() == FoosPlayer::normalizeName($name);
     }
 
     public function getLastTimestamp() {
         return $this->lastTimestamp;
     }
 
+    public function addToList(&$list, $inc = 1) {
+        $oppNormalizedName = $this->getNormalizedName();
+        if (isset($list[$oppNormalizedName])) {
+            $list[$oppNormalizedName]['count'] += $inc;
+        }
+        else
+        {
+            $list[$oppNormalizedName]['count']  = $inc;
+            $list[$oppNormalizedName]['player'] = $this;
+        }
+    }
+/*
     private function addOpponentToList(FoosPlayer $opponent, &$list, $inc = 1) {
         $oppNormalizedName = $opponent->getNormalizedName();
         if (isset($list[$oppNormalizedName])) {
@@ -74,17 +90,17 @@ class FoosPlayer {
         }
 
     }
-
+*/
     public function loseAgainst(FoosPlayer $opponent, $strengthDelta, $timestamp) {
-        $this->addOpponentToList($opponent, $this->lostAgainst);
-        $this->addOpponentToList($opponent, $this->nemesisList);
+        $opponent->addToList($this->lostAgainst);
+        $opponent->addToList($this->nemesisList);
         $this->addStrength($strengthDelta);
         $this->incGames($timestamp);
     } 
 
     public function winAgainst(FoosPlayer $opponent, $strengthDelta, $timestamp) {
-        $this->addOpponentToList($opponent, $this->wonAgainst);
-        $this->addOpponentToList($opponent, $this->nemesisList, -1);
+        $opponent->addToList($this->wonAgainst);
+        $opponent->addToList($this->nemesisList, -1);
         $this->addStrength($strengthDelta);
         $this->incGames($timestamp);     
     } 
@@ -153,6 +169,95 @@ class FoosPlayer {
      */
     public function getStrengthDeltaAfterGame(FoosPlayer $opponent, $outcome) {
         return FoosTable::K * ($outcome - $this->getChancesToWinAgainst($opponent));
+    }
+}
+
+/**
+ * Team of two Players, can be seen as a Player from the outside
+ */
+class FoosTeam extends FoosPlayer {
+    private $player1;
+    private $player2;
+
+    public function FoosTeam (FoosPlayer $player1, FoosPlayer $player2) {
+        $this->player1 = $player1;
+        $this->player2 = $player2;
+    }
+
+    public function asScoreArray($score) {
+        return array(
+            $this->getPlayer1()->getName() => $score,
+            $this->getPlayer2()->getName() => $score
+        );
+    }
+
+    public function getPlayer1() {
+        return $this->player1;
+    }
+
+    public function getPlayer2() {
+        return $this->player2;
+    }
+
+    /**
+     * @override
+     */
+    public function getName() {
+        return $this->getPlayer1()->getName() . " and " . $this->getPlayer2()->getName();
+    }
+
+    public function getNemesis() {
+        return false;
+    }
+
+    public function getGames() {
+        return 1;
+    }
+
+    public function getLostAgainstList() {
+        return array();
+    }
+
+    public function getWonAgainstList() {
+        return array();
+    }
+
+    public function getNemesisList() {
+        return array();
+    }
+
+    public function getStrength() {
+        return ($this->getPlayer1()->getStrength() + $this->getPlayer2()->getStrength()) / 2;
+    }
+
+    public function incGames($timestamp) {
+        $this->getPlayer1()->incGames($timestamp);
+        $this->getPlayer2()->incGames($timestamp);
+    }
+
+    public function addStrength($addStrength) {
+        $this->getPlayer1()->addStrength($addStrength);
+        $this->getPlayer2()->addStrength($addStrength);
+    }
+
+    public function loseAgainst(FoosPlayer $opponent, $strengthDelta, $timestamp) {
+        $this->getPlayer1()->loseAgainst($opponent, $strengthDelta, $timestamp);
+        $this->getPlayer2()->loseAgainst($opponent, $strengthDelta, $timestamp);
+    } 
+
+    public function winAgainst(FoosPlayer $opponent, $strengthDelta, $timestamp) {
+        $this->getPlayer1()->winAgainst($opponent, $strengthDelta, $timestamp);
+        $this->getPlayer2()->winAgainst($opponent, $strengthDelta, $timestamp);  
+    } 
+
+    public function drawAgainst(FoosPlayer $opponent, $strengthDelta, $timestamp) {
+        $this->getPlayer1()->drawAgainst($opponent, $strengthDelta, $timestamp);
+        $this->getPlayer2()->drawAgainst($opponent, $strengthDelta, $timestamp); 
+    } 
+
+    public function addToList(&$list, $inc = 1) {
+        $this->getPlayer1()->addToList($list, $inc);
+        $this->getPlayer2()->addToList($list, $inc); 
     }
 }
 
@@ -232,14 +337,13 @@ class FoosMatch {
     public function asArray() {
         return array(
             'timestamp' => $this->timestamp,
-            'result'    => array(
-                $this->player1->getName() => $this->score1,
-                $this->player2->getName() => $this->score2,
+            'result'    => array_merge(
+                 $this->player1->asScoreArray($this->getScore1()),
+                 $this->player2->asScoreArray($this->getScore2())  
             ),
         );
     }
 }
-
 
 
 class FoosTable {
@@ -298,14 +402,39 @@ class FoosTable {
                     $players = array_keys($result);
                     $scores  = array_values($result);
 
-                    $player1 = $this->getPlayerByName($players[0]);
-                    $player2 = $this->getPlayerByName($players[1]);
+                    if(count($players) == 2) {       // 1vs1
+                        
+                        $player1 = $this->getPlayerByName($players[0]);
+                        $player2 = $this->getPlayerByName($players[1]);
 
-                    $match = new FoosMatch($player1, $scores[0], $player2, $scores[1]);
-                    $match->setTimestamp($gameJson['timestamp']);
+                        $match = new FoosMatch($player1, $scores[0], $player2, $scores[1]);
+                        $match->setTimestamp($gameJson['timestamp']);
 
-                    $this->addMatch($match);
+                        $this->addMatch($match);
+                    }
+                    elseif (count($players) == 4) {  // 2vs2
+                    
+                        if (($scores[0] != $scores[1]) || ($scores[2] != $scores[3])) {
+                            trigger_error('Inconsisten team scores found: '.var_export($gameJson, true));
+                        }
+                        else
+                        {
+                            $player1 = $this->getPlayerByName($players[0]);
+                            $player2 = $this->getPlayerByName($players[1]);
+                            $team1   = new FoosTeam($player1, $player2);
+                            $score1 = $scores[0];
 
+                            $player3 = $this->getPlayerByName($players[2]);
+                            $player4 = $this->getPlayerByName($players[3]);
+                            $team2   = new FoosTeam($player3, $player4);
+                            $score2 = $scores[2];
+
+                            $match = new FoosMatch($team1, $score1, $team2, $score2);
+                            $match->setTimestamp($gameJson['timestamp']);
+
+                            $this->addMatch($match);
+                        }           
+                    }    
                 }
             }
 
