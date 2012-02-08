@@ -3,7 +3,7 @@
     require_once('foos.class.php');
 
     //** Constants **//
-    $workingPath = '/home/marek/foosdata/';
+    $workingPath = '/userhome/marek/foos/';
 
     //** Controller **//
 
@@ -41,7 +41,7 @@
     <title>Foos.fm</title>
     <meta name="description" content="Foos.fm">
     <link rel="stylesheet" href="style.css">
-      
+    <link rel="icon" href="favicon.ico" type="image/x-icon">  
 </head>
 <body>
 
