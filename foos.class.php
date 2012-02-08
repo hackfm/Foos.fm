@@ -77,20 +77,7 @@ class FoosPlayer {
             $list[$oppNormalizedName]['player'] = $this;
         }
     }
-/*
-    private function addOpponentToList(FoosPlayer $opponent, &$list, $inc = 1) {
-        $oppNormalizedName = $opponent->getNormalizedName();
-        if (isset($list[$oppNormalizedName])) {
-            $list[$oppNormalizedName]['count'] += $inc;
-        }
-        else
-        {
-            $list[$oppNormalizedName]['count']  = $inc;
-            $list[$oppNormalizedName]['player'] = $opponent;
-        }
 
-    }
-*/
     public function loseAgainst(FoosPlayer $opponent, $strengthDelta, $timestamp) {
         $opponent->addToList($this->lostAgainst);
         $opponent->addToList($this->nemesisList);

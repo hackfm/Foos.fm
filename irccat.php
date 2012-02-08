@@ -64,7 +64,7 @@
         echo $player1->getName().' => '.
             'from #'.$tableOld->getPositionOfPlayer($toks[0])." (".$player1Old->getRoundedStrength().") ".
             "to #".$table->getPositionOfPlayer($toks[0])." (".$player1->getRoundedStrength().")\n";
-        echo $player1->getName().' => '.
+        echo $player2->getName().' => '.
             'from #'.$tableOld->getPositionOfPlayer($toks[2])." (".$player2Old->getRoundedStrength().") ".
             "to #".$table->getPositionOfPlayer($toks[2])." (".$player2->getRoundedStrength().")\n";
 
