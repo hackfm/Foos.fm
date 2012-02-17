@@ -55,7 +55,7 @@
             <th>#</th>
             <th>Winner</th>
             <th></th>
-            <th>Looser</th>
+            <th>Loser</th>
             <th></th>
             <th>Time</th>
             <th>Action</th>
