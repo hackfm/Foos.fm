@@ -10,6 +10,14 @@ class FoosPlayer {
     private $wonAgainst = array();
     private $nemesisList = array();
 
+    /**
+     * Maximum strength win/lose for one game
+     * @return Integer The constant "K" used for ELO
+     */
+    public function getK() {
+        return 200;
+    }
+
     public function FoosPlayer ($name, $strength) {
         $this->name = $name;
         $this->strength = $strength;
@@ -155,7 +163,7 @@ class FoosPlayer {
      * @return Strength delta
      */
     public function getStrengthDeltaAfterGame(FoosPlayer $opponent, $outcome) {
-        return FoosTable::K * ($outcome - $this->getChancesToWinAgainst($opponent));
+        return $this->getK() * ($outcome - $this->getChancesToWinAgainst($opponent));
     }
 }
 
@@ -165,6 +173,13 @@ class FoosPlayer {
 class FoosTeam extends FoosPlayer {
     private $player1;
     private $player2;
+
+    /**
+     * Make team games only half as important in terms of strength
+     */
+    public function getK() {
+        return 200; 
+    }
 
     public function FoosTeam (FoosPlayer $player1, FoosPlayer $player2) {
         $this->player1 = $player1;
@@ -334,7 +349,7 @@ class FoosMatch {
 
 
 class FoosTable {
-    const K = 200;   
+       
     const RELATIVE_STRENGTH_NORMALISATION = 500;   
     const DEFAULT_STRENGTH = 1000;  
     const GAMES_FILE    = 'games.json';
@@ -346,6 +361,9 @@ class FoosTable {
 
     private $logMaxSize = 0;
     private $log = array();
+
+    private $ignoreDoubles = false;
+    private $ignoreSingles = false;
 
     public function FoosTable($gameFolder = null) {
         if ($gameFolder != null) {
@@ -373,6 +391,14 @@ class FoosTable {
         return $this->log;
     }
 
+    public function setIgnoreSingles($ignoreSingles) {
+        $this->ignoreSingles = $ignoreSingles;
+    }
+
+    public function setIgnoreDoubles($ignoreDoubles) {
+        $this->ignoreDoubles = $ignoreDoubles;
+    }
+
     public function loadGamesFromFile($gamesFile, $timestamp = null) {
         if(!$timestamp) {
             $timestamp = time();
@@ -389,7 +415,7 @@ class FoosTable {
                     $players = array_keys($result);
                     $scores  = array_values($result);
 
-                    if(count($players) == 2) {       // 1vs1
+                    if((count($players) == 2) && (!$this->ignoreSingles)) {       // 1vs1
                         
                         $player1 = $this->getPlayerByName($players[0]);
                         $player2 = $this->getPlayerByName($players[1]);
@@ -399,7 +425,7 @@ class FoosTable {
 
                         $this->addMatch($match);
                     }
-                    elseif (count($players) == 4) {  // 2vs2
+                    elseif ((count($players) == 4) && (!$this->ignoreDoubles)) {  // 2vs2
                     
                         if (($scores[0] != $scores[1]) || ($scores[2] != $scores[3])) {
                             trigger_error('Inconsisten team scores found: '.var_export($gameJson, true));
@@ -544,7 +570,6 @@ class FoosTable {
                 $this->log[] = $logEntry;
             }
         }
-
         $this->sortPlayers();
     }
 
