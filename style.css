@@ -1,7 +1,6 @@
 html {
-    background-color: #b0b0b0;
+    background-color: #ffffff;
     background-repeat: repeat-y;
-    background-image: url(http://foosball.office.last.fm/foos.jpg);
     -webkit-background-size: 100% auto;
     -moz-background-size: 100% auto;
     -o-background-size: 100% auto;
@@ -21,6 +20,8 @@ body {
 }
 h1,
 h2 {
+    position: relative;
+    z-index: 1;
     margin: 0;
     padding: 0;
     font-weight: bold;
@@ -29,6 +30,7 @@ h1 {
     font-size: 64px;
     color: #ffffff;
     text-shadow: 0 0 5px rgba(0,0,0,0.5);
+    padding: 0 10px;
 }
 h2 {
     font-size: 32px;
@@ -46,6 +48,8 @@ a:active {
 }
 
 #tabs {
+    position: relative;
+    z-index: 1;
     margin: 0 10px 10px;
     background: #dddddd;
     -webkit-border-radius: 7px;
@@ -60,22 +64,22 @@ a:active {
 #tabs .tab {
     padding: 20px;
     background: #ffffff;
-}
-.js #tabs .tab {
     display: none;
 }
-.js #tabs .selected.tab {
+#tabs .selected.tab {
     display: block;
     -webkit-border-radius: 7px;
     -moz-border-radius: 7px;
     border-radius: 7px;
 }
-.js #tabs .tab#league {
+#tabs .tab#league {
     -webkit-border-top-left-radius: 0;
     -moz-border-radius-topleft: 0;
     border-radius-top-left: 0;
 }
 #tabNav {
+    position: relative;
+    z-index: 2;
     overflow: hidden;
     list-style: none;
     margin: 0;
@@ -87,9 +91,9 @@ a:active {
     padding: 0;
     float: left;
     margin-right: 3px;
-    -webkit-box-shadow: 0 0 5px rgba(0,0,0,0.5);
-    -moz-box-shadow: 0 0 5px rgba(0,0,0,0.5);
     box-shadow: 0 0 5px rgba(0,0,0,0.5);
+    -moz-box-shadow: 0 0 5px rgba(0,0,0,0.5);
+    -webkit-box-shadow: 0 0 5px rgba(0,0,0,0.5);
     -webkit-border-top-left-radius: 7px;
     -webkit-border-top-right-radius: 7px;
     -moz-border-radius-topleft: 7px;
@@ -108,6 +112,9 @@ a:active {
     -moz-border-radius-topright: 7px;
     border-radius: 7px 7px 0 0;
     padding: 10px 20px 7px;
+    box-shadow: inset 0 -5px 5px rgba(0,0,0,0.2);
+    -moz-box-shadow: inset 0 -5px 5px rgba(0,0,0,0.2);
+    -webkit-box-shadow: inset 0 -5px 5px rgba(0,0,0,0.2);
 }
 #tabNav li a:hover {
     background: #eeeeee;
@@ -119,6 +126,9 @@ a:active {
 #tabNav li.selected a {
     background: #ffffff;
     color: #000000;
+    box-shadow: none;
+    -moz-box-shadow: none;
+    -webkit-box-shadow: none;
 }
 table.google-visualization-table-table,
 #log_chart,
@@ -133,4 +143,17 @@ img#cam {
     background-color: #b0b0b0;
     display: block;
     margin: 0 auto;
+    width: 640px;
+    height: 480px;
+}
+img#bgcam {
+    width: 100%;
+    height: 100%;
+    background: url(http://10.180.255.227:8080/?action=snapshot) repeat 50% 0;
+    background-size: 100% auto;
+    position: absolute;
+    top: 0;
+    left: 0;
+    z-index: 0;
+    -webkit-filter: blur(10px) sepia(0.6);
 }

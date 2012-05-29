@@ -22,7 +22,8 @@
 
     // Current data
     $table = new FoosTable($workingPath);
-    $table->setLogMaxSize(30);
+    $maxGamesInGraph = 50;
+    $table->setLogMaxSize($maxGamesInGraph);
     $table->loadCurrentStatus();
     $table->calculateScore();
 
@@ -60,7 +61,7 @@
             <div id="log_chart"></div>
         </div>
         <div class="tab" id="fooscam">
-            <img onclick="refresh()" id="cam" src="http://foosball.office.last.fm/foos.jpg" alt="" title="Instead of hovering over this image you could come over and play a game" />
+            <img onclick="refresh()" id="cam" src="http://10.180.255.227:8080/?action=stream" alt="" title="Instead of hovering over this image you could come over and play a game" />
         </div>
         <div class="tab" id="history">
             <table id="history">
@@ -175,20 +176,22 @@
                         $i = 1;
                         $matches = $table->getMatches();   
                         foreach ($table->getLog() as $logEntry) {
-                            $index = max(count($matches) - 31 + $i, 0);
+                            $index = max(count($matches) - ($maxGamesInGraph + 1) + $i, 0);
                             $match = $matches[$index];
-                            echo "['".
-                                    $match->getPlayer1()->getName().
-                                    " vs. ".
-                                    $match->getPlayer2()->getName().
-                                    " (".
-                                    date('d F Y g:i A', $match->getTimestamp()).
-                                    ")".
-                                  "'";
-                                foreach ($table->getPlayers() as $player) {
-                                    echo ",".round($logEntry[$player->getNormalizedName()]);
-                                }
-                            echo "],\n";
+                            if ($match instanceof FoosMatch) {
+                                echo "['".
+                                        $match->getPlayer1()->getName().
+                                        " vs. ".
+                                        $match->getPlayer2()->getName().
+                                        " (".
+                                        date('d F Y g:i A', $match->getTimestamp()).
+                                        ")".
+                                      "'";
+                                    foreach ($table->getPlayers() as $player) {
+                                        echo ",".round($logEntry[$player->getNormalizedName()]);
+                                    }
+                                echo "],\n";
+                            } 
                             $i++;
                             
                         }
@@ -209,41 +212,35 @@
             </script>
         </div>
     </div>
+
+    <img id="bgcam" src="http://static.lst.fm/flatness/clear.gif" alt="" />
+
     <script type="text/javascript" src="http://ajax.googleapis.com/ajax/libs/jquery/1.7.1/jquery.min.js?ver=1.7.1"></script>
     <script>
         $(document).ready(function() {
             $('html').removeClass('no-js').addClass('js');
-            
+
+            /* TABS */            
             if (window.location.hash.length > 0) {
                 selectTab(window.location.hash);
+            } else {
+                selectTab('#league');
             }
-            
-            function refreshCam() {
-                var newFoosCam = 'http://foosball.office.last.fm/foos.jpg?rand='+Math.random();
-                $('<img />')
-                    .attr('src',newFoosCam)
-                    .load(function(){
-                        $('#cam').attr('src',newFoosCam);
-                        $('html').css('background-image','url('+newFoosCam+')');
-                    });
-            }
-            setInterval(refreshCam,5000);
-            
+
             function selectTab(tabName) {
                 $('.selected.tab, #tabNav li.selected').removeClass('selected');
                 $(tabName + ', .' + tabName.substr(1)).addClass('selected');
             }
-            /* TABS */
             $('#tabNav a').click(function(e) {
                 e.preventDefault();
                 selectTab($(this).attr('href'));
                 history.pushState(null, null, this.href);
             });
+
+            setInterval(function() {
+                $('#cam').attr('src', 'http://10.180.255.227:8080/?action=stream&rand='+Math.floor(Math.random() * 10000));
+            }, 60000);
         });
     </script>
 </body>
 </html>
-
-
-   
-
