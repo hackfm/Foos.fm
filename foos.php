@@ -109,7 +109,7 @@
                     <?php
                         $minStrength = null;
                         $i = 0;
-                        foreach ($table->getPlayers() as $player) {
+                        foreach ($table->getPlayersWithoutIgnoredOnes() as $player) {
                             echo "playerTable.addRows(1);\n";
         
                             $changePos = $tableOld->getPositionOfPlayer($player->getName());
@@ -168,7 +168,7 @@
                     logTable.addColumn('string', 'Game #');
         
                     <?php
-                        foreach ($table->getPlayers() as $player) {
+                        foreach ($table->getPlayersWithoutIgnoredOnes() as $player) {
                             echo "logTable.addColumn('number', '".$player->getName()."');\n";
                         }
         
@@ -187,7 +187,7 @@
                                         date('d F Y g:i A', $match->getTimestamp()).
                                         ")".
                                       "'";
-                                    foreach ($table->getPlayers() as $player) {
+                                    foreach ($table->getPlayersWithoutIgnoredOnes() as $player) {
                                         echo ",".round($logEntry[$player->getNormalizedName()]);
                                     }
                                 echo "],\n";
@@ -239,7 +239,7 @@
 
             setInterval(function() {
                 $('#cam').attr('src', 'http://10.180.255.227:8080/?action=stream&rand='+Math.floor(Math.random() * 10000));
-            }, 60000);
+            }, 10000);
         });
     </script>
 </body>

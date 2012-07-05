@@ -352,11 +352,13 @@ class FoosTable {
        
     const RELATIVE_STRENGTH_NORMALISATION = 500;   
     const DEFAULT_STRENGTH = 1000;  
-    const GAMES_FILE    = 'games.json';
+    const GAMES_FILE     = 'games.json';
+    const IGNORE_PLAYERS = 'ignore.json';
 
     private $gameFolder = '/userhome/marek/foos/'; // Has to end with a trailing slash!
     
     private $players = array();
+    private $ignoreList = null;
     private $matches = array();
 
     private $logMaxSize = 0;
@@ -588,6 +590,18 @@ class FoosTable {
         return $this->players;
     }
 
+    public function getPlayersWithoutIgnoredOnes() {
+        $result = array();
+
+        foreach ($this->players as $player) {
+            if ( ! $this->isIgnoredPlayer($player)) {
+                $result[] = $player;
+            }
+        }
+
+        return $result;
+    }
+
     /**
      * @param pos integer Starts with 1!
      */
@@ -618,7 +632,10 @@ class FoosTable {
             if($key == $normalizedName) {
                 return $i;
             }
-            $i++;
+
+            if (! $this->isIgnoredPlayer($player)) {
+                $i++;
+            }
         }
         return false;
     }
@@ -631,6 +648,29 @@ class FoosTable {
 
     public function timestampIsToday($timestamp) {
         return getDayTextForTimestamp(time()) == getDayTextForTimestamp(time());
+    }
+
+    public function isIgnoredPlayer(FoosPlayer $player) {
+        foreach ($this->getIgnoreList() as $ignoredName) {
+            if ($player->matchesName($ignoredName)) {
+                return true;
+            } 
+        }
+        return false;            
+    }
+
+    public function getIgnoreList() {
+        if ( ! $this->ignoreList) {
+            $ignoreListRaw    = file_get_contents($this->gameFolder.self::IGNORE_PLAYERS);
+            if ($ignoreListRaw) { 
+                $this->ignoreList = json_decode($ignoreListRaw, true);
+            }
+            else
+            {
+                $this->ignoreList = array();
+            }
+        }
+        return $this->ignoreList;
     }
 
 }
