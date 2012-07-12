@@ -32,7 +32,6 @@
     $tableOld->loadStatusForTime(time() - 48 * 60 * 60);
     $tableOld->calculateScore();
 
-
     //** View **//
 ?><!doctype html>
 <html lang="en" class="no-js">
@@ -121,7 +120,7 @@
                             }
                             echo "playerTable.setCell($i, 1, ".($i + 1).");\n";
                             echo "playerTable.setCell($i, 2, '".$player->getName()."');\n";
-                            echo "playerTable.setCell($i, 3, ".$player->getRoundedStrength().");\n";
+                            echo "playerTable.setCell($i, 3, ".$player->getCorrectedStrength().");\n";
                             echo "playerTable.setCell($i, 4, ".$player->getGames().");\n";
                             $nemesis = $player->getNemesis();
                             if ($nemesis) {
@@ -131,11 +130,11 @@
                             }
         
                             if ($minStrength === null) {
-                                $minStrength = $player->getRoundedStrength();
+                                $minStrength = $player->getCorrectedStrength();
                             }
                             else
                             {
-                                $minStrength = min($minStrength, $player->getRoundedStrength());
+                                $minStrength = min($minStrength, $player->getCorrectedStrength());
                             }
                             
                             

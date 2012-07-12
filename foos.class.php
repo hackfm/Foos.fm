@@ -5,6 +5,8 @@ class FoosPlayer {
     private $strength;
     private $games = 0;
     private $lastTimestamp;
+    private $table;
+    private $isIgnoredCache = null; // NULL = don't know
 
     private $lostAgainst = array();
     private $wonAgainst = array();
@@ -18,9 +20,10 @@ class FoosPlayer {
         return 200;
     }
 
-    public function FoosPlayer ($name, $strength) {
+    public function FoosPlayer ($name, $strength, FoosTable $table) {
         $this->name = $name;
         $this->strength = $strength;
+        $this->table = $table;
     }
 
     public function asScoreArray($score) {
@@ -45,6 +48,13 @@ class FoosPlayer {
         return $this->games;
     }
 
+    public function isIgnored() {
+        if ($this->isIgnoredCache === null) {
+            $this->isIgnoredCache = $this->table->isIgnoredPlayer($this);
+        }
+        return $this->isIgnoredCache;
+    }
+
     public function incGames($timestamp) {
         $this->games++;
         $this->lastTimestamp = $timestamp;
@@ -58,8 +68,9 @@ class FoosPlayer {
         return $this->strength;
     }
 
-    public function getRoundedStrength() {
-        return round($this->strength);
+    // Should be used for all user facing data
+    public function getCorrectedStrength() {
+        return round($this->strength - $this->table->getAverageStrength() + FoosTable::DEFAULT_STRENGTH);
     }
 
     public function setStrength($strength) {
@@ -351,7 +362,7 @@ class FoosMatch {
 class FoosTable {
        
     const RELATIVE_STRENGTH_NORMALISATION = 500;   
-    const DEFAULT_STRENGTH = 1000;  
+    const DEFAULT_STRENGTH = 0;  
     const GAMES_FILE     = 'games.json';
     const IGNORE_PLAYERS = 'ignore.json';
 
@@ -553,7 +564,7 @@ class FoosTable {
         }
 
         // No? Create a new one
-        $player = new FoosPlayer($name, FoosTable::DEFAULT_STRENGTH);
+        $player = new FoosPlayer($name, FoosTable::DEFAULT_STRENGTH, $this);
         $this->players[$normalizedName] = $player;
         return $player;
     }
@@ -590,11 +601,26 @@ class FoosTable {
         return $this->players;
     }
 
+    public function getAverageStrength() {
+        $sum = 0;
+        $i = 0;
+        foreach ($this->getPlayersWithoutIgnoredOnes() as $player) {
+            $sum += $player->getStrength();
+            ++$i;
+        }
+
+        if ($i > 0) {
+            return $sum / $i;
+        }
+
+        return 0;
+    }
+
     public function getPlayersWithoutIgnoredOnes() {
         $result = array();
 
         foreach ($this->players as $player) {
-            if ( ! $this->isIgnoredPlayer($player)) {
+            if ( ! $player->isIgnored()) {
                 $result[] = $player;
             }
         }
@@ -633,7 +659,7 @@ class FoosTable {
                 return $i;
             }
 
-            if (! $this->isIgnoredPlayer($player)) {
+            if ( ! $player->isIgnored()) {
                 $i++;
             }
         }
