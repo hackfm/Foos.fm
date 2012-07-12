@@ -73,6 +73,11 @@ class FoosPlayer {
         return round($this->strength - $this->table->getAverageStrength() + FoosTable::DEFAULT_STRENGTH);
     }
 
+    // Alias for getCorrectedStrength, ensures backwards compatibility
+    public function getRoundedStrength() {
+        return $this->getCorrectedStrength();
+    }
+
     public function setStrength($strength) {
         $this->strength = $strength;
     }

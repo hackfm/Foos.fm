@@ -21,7 +21,7 @@
         $table = new FoosTable($workingPath);
         $table->loadCurrentStatus();
         $table->calculateScore();
-        printFoosTable($table->getPlayers());
+        printFoosTable($table->getPlayersWithoutIgnoredOnes());
 
         $showHelp = false;
     } 
