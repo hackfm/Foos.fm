@@ -37,7 +37,7 @@
 <html lang="en" class="no-js">
 <head>
     <meta charset="utf-8">
-    <title>Foos.fm</title>
+    <title>#last.foos</title>
     <meta name="description" content="Foos.fm">
     <link rel="stylesheet" href="style.css">
     <link rel="icon" href="favicon.ico" type="image/x-icon"> 
@@ -60,7 +60,8 @@
             <div id="log_chart"></div>
         </div>
         <div class="tab" id="fooscam">
-            <img onclick="refresh()" id="cam" src="http://10.180.255.227:8080/?action=stream" alt="" title="Instead of hovering over this image you could come over and play a game" />
+            <img id="cam" src="" alt="" title="Instead of hovering over this image you could come over and play a game" />
+            <input type="checkbox" id="enableCam" /><label for="enableCam">Activate Live Stream (eats some CPU)</label>
         </div>
         <div class="tab" id="history">
             <table id="history">
@@ -216,6 +217,29 @@
 
     <script type="text/javascript" src="http://ajax.googleapis.com/ajax/libs/jquery/1.7.1/jquery.min.js?ver=1.7.1"></script>
     <script>
+
+        // http://jquery-howto.blogspot.co.uk/2010/09/jquery-cookies-getsetdelete-plugin.html#jQuery-Cookie-plugin
+        function setCookie(name,value,days) {
+            if (days) {
+                var date = new Date();
+                date.setTime(date.getTime()+(days*24*60*60*1000));
+                var expires = "; expires="+date.toGMTString();
+            }
+            else var expires = "";
+            document.cookie = name+"="+value+expires+"; path=/";
+        }
+
+        function getCookie(name) {
+            var nameEQ = name + "=";
+            var ca = document.cookie.split(';');
+            for(var i=0;i < ca.length;i++) {
+                var c = ca[i];
+                while (c.charAt(0)==' ') c = c.substring(1,c.length);
+                if (c.indexOf(nameEQ) == 0) return c.substring(nameEQ.length,c.length);
+            }
+            return null;
+        }
+
         $(document).ready(function() {
             $('html').removeClass('no-js').addClass('js');
 
@@ -236,9 +260,37 @@
                 history.pushState(null, null, this.href);
             });
 
-            setInterval(function() {
+            
+            var intervalId = null;
+            function refreshCam() {
                 $('#cam').attr('src', 'http://10.180.255.227:8080/?action=stream&rand='+Math.floor(Math.random() * 10000));
-            }, 10000);
+            }
+
+            function startCam() {
+                stopCam()
+                refreshCam();
+                intervalId = setInterval(refreshCam, 10000);
+            }
+
+            function stopCam() {
+                clearInterval(intervalId);
+                $('#cam').attr('src', 'http://static.lst.fm/flatness/clear.gif');
+            }
+
+            function updateCamStatus() {
+                if ($('#enableCam').is(':checked')) {
+                    startCam();
+                    setCookie('liveStream', '1', 30);
+                }
+                else
+                {
+                    stopCam();
+                    setCookie('liveStream', '0', 30);
+                }
+            }
+
+            $('#enableCam').attr('checked', (getCookie('liveStream') == '1')).change(updateCamStatus);
+            updateCamStatus();
         });
     </script>
 </body>
